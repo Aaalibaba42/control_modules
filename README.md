@@ -20,3 +20,8 @@ This is genius, SURELY a great team labored hard for this
 =========================================================
 
 Nope! As hard as it is to believe, I did that myself :^>. But yes I agree that, naturally, this program is changing the whole paradigm of Ricing on linux.
+
+Usage
+=====
+
+Jcrois que t'as pas trop compris en fait...
