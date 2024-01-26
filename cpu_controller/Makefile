@@ -1,6 +1,6 @@
 CC=gcc
 CFLAGS=-pedantic -std=c99 -Werror -Wextra -Wall -Wvla
-CPPFLAGS=-D_DEFAULT_C_SOURCE -D_GNU_SOURCE
+CPPFLAGS=-D_GNU_SOURCE
 
 SRC=cpu_controller.c
 OBJ=$(SRC:.c=.o)
