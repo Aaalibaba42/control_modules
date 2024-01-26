@@ -1,9 +1,8 @@
-#include <fcntl.h>
 #include <signal.h>
-#include <string.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
@@ -11,214 +10,127 @@
 
 #define PID_FILE "/tmp/cpu_controller.pid"
 
-#define LOG_FILE "/tmp/cpu_controller.log"
-
-bool SHOULD_LOG = true;
+bool PARENT = true;
 
 // TODO put on the heap you rascal
 #define MAX_STACK_SIZE 64
 pid_t child_stack[MAX_STACK_SIZE];
 int stack_index = -1;
 
-void my_log(char *str);
-
 void cleanup(int i)
 {
-    // the parent
-    if (SHOULD_LOG)
+    if (PARENT)
+    {
         unlink(PID_FILE);
-
-    char *s = NULL;
-    asprintf(&s, "Cleaning up: %i", i);
-    free(s);
+        // TODO once on the heap, free child_stack here
+    }
 
     exit(i);
-}
-
-void my_log(char *str)
-{
-    if (!SHOULD_LOG)
-        return;
-
-    FILE *log_file = fopen(LOG_FILE, "a");
-    if (log_file != NULL)
-    {
-        fprintf(log_file, "%s\n", str);
-        fclose(log_file);
-    }
-    else
-    {
-        my_log("Error opening log file");
-        cleanup(EXIT_FAILURE);
-    }
 }
 
 void write_pid_file(pid_t pid)
 {
     FILE *pid_file = fopen(PID_FILE, "w");
-    if (pid_file != NULL)
-    {
-        fprintf(pid_file, "%d", pid);
-        fclose(pid_file);
-    }
-    else
-    {
-        my_log("Error opening PID file");
+
+    if (!pid_file)
         cleanup(EXIT_FAILURE);
-    }
+
+    fprintf(pid_file, "%d", pid);
+    fclose(pid_file);
 }
 
 void daemonize(void)
 {
-    char *s = NULL;
     pid_t pid, sid;
     pid = fork();
 
     if (pid < 0)
-    {
-        my_log("Failed fork");
         cleanup(EXIT_FAILURE);
-    }
     if (pid > 0)
     {
         write_pid_file(pid);
-        asprintf(&s, "fork pid: %d", pid);
-        my_log(s);
-        free(s);
-        s = NULL;
-        my_log("Parent Suicide");
         exit(EXIT_SUCCESS);
     }
 
     umask(0);
     sid = setsid();
-    asprintf(&s, "sid: %d", sid);
-    my_log(s);
-    free(s);
-    s = NULL;
-    asprintf(&s, "pid after setsid: %d", getpid());
-    my_log(s);
-    free(s);
-    s = NULL;
     if (sid < 0)
-    {
-        my_log("Failed setsid");
         cleanup(EXIT_FAILURE);
-    }
     if ((chdir("/")) < 0)
-    {
-        my_log("Failed chdir");
         cleanup(EXIT_FAILURE);
-    }
 
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-
-    free(s);
 }
 
 void increase_cpu(void)
 {
-    SHOULD_LOG = false;
+    // Waits for the SIGINT/SIGTERM/SIGKILL
     while (1)
     {
+        // I think the braces and ; are mandatory to force noop instead
+        // of compiler optimizing empty while leading to UB
         ;
     }
 }
 
 void sigusr1_handler(void)
 {
-    char *s = NULL;
     if (stack_index < MAX_STACK_SIZE - 1)
     {
         pid_t child_pid = fork();
 
         if (child_pid == -1)
-        {
-            my_log("Fork error");
             cleanup(EXIT_FAILURE);
-        }
 
         if (child_pid == 0)
         {
-            asprintf(&s, "Increase CPU process %i created.", getpid());
-            my_log(s);
-            free(s);
-            s = NULL;
+            PARENT = false;
             increase_cpu();
+            // Unreachable, but still
             cleanup(EXIT_SUCCESS);
         }
-        else
-        {
-            stack_index++;
-            child_stack[stack_index] = child_pid;
-            asprintf(&s, "Child process %i added to the stack.", child_pid);
-            my_log(s);
-            free(s);
-            s = NULL;
-        }
+        stack_index++;
+        child_stack[stack_index] = child_pid;
     }
-    else
-        my_log("Stack is full. Cannot add more processes.");
 }
 
 void sigusr2_handler(void)
 {
-    char *s = NULL;
     if (stack_index >= 0)
     {
         pid_t top_pid = child_stack[stack_index];
         kill(top_pid, SIGTERM);
         waitpid(top_pid, NULL, 0);
-
-        asprintf(&s, "Child process %i killed and removed from the stack.",
-                 top_pid);
-        my_log(s);
-        free(s);
-        s = NULL;
         stack_index--;
     }
-    else
-        my_log("Stack is empty. No processes to kill.");
 }
 
 void signal_handler(int signum)
 {
     switch (signum)
     {
-    case SIGUSR1: {
-        my_log("Received SIGUSR1");
+    case SIGUSR1:
         sigusr1_handler();
         break;
-    }
-    case SIGUSR2: {
-        my_log("Received SIGUSR2");
+    case SIGUSR2:
         sigusr2_handler();
         break;
-    }
 
     case SIGTERM:
-    case SIGINT: {
-        my_log("Received SIGTERM or SIGINT");
+    case SIGINT:
         cleanup(EXIT_SUCCESS);
+
+    default:
         break;
-    }
-    default: {
-        char *s = NULL;
-        asprintf(&s, "Received signal: %i", signum);
-        my_log(s);
-        free(s);
-        s = NULL;
-        break;
-    }
     }
 }
 
-int get_pidfile()
+int fetch_pid()
 {
     FILE *f = fopen(PID_FILE, "r");
-    if (f == NULL)
+    if (!f)
     {
         printf("Could not open pid_file\n");
         exit(EXIT_FAILURE);
@@ -233,19 +145,26 @@ int get_pidfile()
 
 void up_usage()
 {
-    int pid = get_pidfile();
-    kill(pid, SIGUSR1);
+    int pid = fetch_pid();
+    if (kill(pid, SIGUSR1) < 0)
+        printf("Signal was not sent. Is the daemon running and does the file "
+               "%s contain a valid pid ?\n",
+               PID_FILE);
 }
 
 void down_usage()
 {
-    int pid = get_pidfile();
-    kill(pid, SIGUSR2);
+    int pid = fetch_pid();
+    if (kill(pid, SIGUSR2) < 0)
+        printf("Signal was not sent. Is the daemon running and does the file "
+               "%s contain a valid pid ?\n",
+               PID_FILE);
 }
 
 int main(int argc, char *argv[])
 {
-    if (access("/tmp/cpu_controller.pid", F_OK) == 0)
+    // If daemon is running
+    if (!access(PID_FILE, F_OK))
     {
         if (argc != 2)
         {
@@ -262,29 +181,22 @@ int main(int argc, char *argv[])
             printf("Usage: ./cpu_controller [up|down]\n");
             exit(EXIT_FAILURE);
         }
+        // We don't want to cleanup here
         exit(EXIT_SUCCESS);
     }
-    else
-    {
-        printf("Srarting Daemon...\n");
-        daemonize();
 
-        signal(SIGUSR1, signal_handler);
-        signal(SIGUSR2, signal_handler);
-        signal(SIGTERM, signal_handler);
-        signal(SIGINT, signal_handler);
+    // Daemon is not running
+    printf("Srarting Daemon...\n");
+    daemonize();
 
-        char *s = NULL;
-        asprintf(&s, "pid in main thing: %i", getpid());
-        my_log(s);
-        free(s);
+    signal(SIGUSR1, signal_handler);
+    signal(SIGUSR2, signal_handler);
+    signal(SIGTERM, signal_handler);
+    signal(SIGINT, signal_handler);
 
-        while (1)
-        {
-            pause();
-        }
+    while (1)
+        pause();
 
-        // Unreachable, but still
-        cleanup(EXIT_SUCCESS);
-    }
+    // Unreachable, but still
+    cleanup(EXIT_SUCCESS);
 }
