@@ -1,0 +1,62 @@
+// -*- mode: json -*-
+
+{
+// [...]
+	"modules-right": [
+		"custom/left-arrow-dark",
+		"pulseaudio",
+		"custom/left-arrow-light",
+		"custom/left-arrow-dark",
+		"memory",
+		"custom/left-arrow-light",
+		"custom/left-arrow-dark",
+		"cpu",
+		"custom/left-arrow-light",
+		"custom/left-arrow-dark",
+// [...]
+	],
+
+	"custom/left-arrow-dark": {
+		"format": "",
+		"tooltip": false
+	},
+	"custom/left-arrow-light": {
+		"format": "",
+		"tooltip": false
+	},
+
+	"pulseaudio": {
+		"format": "{icon} {volume:1}%",
+		"format-bluetooth": "{icon}  {volume}%",
+		"format-muted": "MUTE",
+		"format-icons": {
+			"headphones": "",
+			"default": [
+				"",
+				""
+			]
+		},
+		"scroll-step": 2,
+		"on-click": "pamixer -t",
+	},
+
+	"memory": {
+        // memory_controller must be in your $PATH
+		"interval": 1,
+		"format": "Mem {}%",
+        "on-scroll-up": "memory_controller up",
+        "on-scroll-down": "memory_controller down",
+        // kill all instances of bogus memory loads
+        "on-click": "killall memory_controller; rm /tmp/memory_controller.*; memory_controller"
+	},
+	"cpu": {
+        // cpu_controller must be in your $PATH
+		"interval": 1,
+		"format": "CPU {usage:2}%",
+        "on-scroll-up": "cpu_controller up",
+        "on-scroll-down": "cpu_controller down",
+        // kill all instances of bogus cpu loads
+        "on-click": "killall cpu_controller; rm /tmp/cpu_controller.*; cpu_controller"
+	},
+// [...]
+}
