@@ -1,8 +1,14 @@
 CC=gcc
 CFLAGS=-pedantic -std=c99 -Werror -Wextra -Wall -Wvla
-DEFINES=-D_DEFAULT_C_SOURCE -D_GNU_SOURCE
+CPPFLAGS=-D_DEFAULT_C_SOURCE -D_GNU_SOURCE
 
-BIN=memory_controller
+SRC=memory_controller.c
+OBJ=$(SRC:.c=.o)
+BIN=$(OBJ:.o=)
 
-$(BIN): memory_controller.c
-	$(CC) -o ~/hsh/scripts/bin/$@ $(CFLAGS) $(DEFINES) $^
+$(BIN): $(OBJ)
+
+$(OBJ): $(SRC)
+
+clean:
+	$(RM) $(OBJ) $(BIN)
