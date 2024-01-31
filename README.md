@@ -25,3 +25,8 @@ Usage
 =====
 
 Jcrois que t'as pas trop compris en fait...
+
+If you don't understand the point of this project
+=================================================
+
+If you don't understand the point of this project, please read the following [documentation](https://github.com/Aaalibaba42/control_modules#readme)
