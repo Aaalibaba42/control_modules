@@ -1,0 +1,3 @@
+*.o
+cpu_controller/cpu_controller
+memory_controller/memory_controller

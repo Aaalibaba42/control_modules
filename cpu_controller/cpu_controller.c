@@ -30,7 +30,7 @@ void cleanup(int i)
 
 void write_pid_file(pid_t pid)
 {
-    FILE *pid_file = fopen(PID_FILE, "w");
+    FILE* pid_file = fopen(PID_FILE, "w");
 
     if (!pid_file)
         cleanup(EXIT_FAILURE);
@@ -129,13 +129,13 @@ void signal_handler(int signum)
 
 int fetch_pid()
 {
-    FILE *f = fopen(PID_FILE, "r");
+    FILE* f = fopen(PID_FILE, "r");
     if (!f)
     {
         printf("Could not open pid_file\n");
         exit(EXIT_FAILURE);
     }
-    char *s = NULL;
+    char* s = NULL;
     size_t t = 0;
     getline(&s, &t, f);
     int r = atoi(s);
@@ -161,7 +161,7 @@ void down_usage()
                PID_FILE);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // If daemon is running
     if (!access(PID_FILE, F_OK))

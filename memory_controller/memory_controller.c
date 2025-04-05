@@ -14,7 +14,7 @@ bool PARENT = true;
 
 //                 2 ** 27
 #define PAGE_SIZE 134217728
-void *PAGE = NULL;
+void* PAGE = NULL;
 
 // TODO put on the heap you rascal
 #define MAX_STACK_SIZE 256
@@ -37,7 +37,7 @@ void cleanup(int i)
 
 void write_pid_file(pid_t pid)
 {
-    FILE *pid_file = fopen(PID_FILE, "w");
+    FILE* pid_file = fopen(PID_FILE, "w");
 
     if (!pid_file)
         cleanup(EXIT_FAILURE);
@@ -137,13 +137,13 @@ void signal_handler(int signum)
 
 int fetch_pid()
 {
-    FILE *f = fopen(PID_FILE, "r");
+    FILE* f = fopen(PID_FILE, "r");
     if (!f)
     {
         printf("Could not open pid_file\n");
         exit(EXIT_FAILURE);
     }
-    char *s = NULL;
+    char* s = NULL;
     size_t t = 0;
     getline(&s, &t, f);
     int r = atoi(s);
@@ -155,17 +155,21 @@ void up_usage()
 {
     int pid = fetch_pid();
     if (kill(pid, SIGUSR1) < 0)
-        printf("Signal was not sent. Is the daemon running and does the file %s contain a valid pid ?\n", PID_FILE);
+        printf("Signal was not sent. Is the daemon running and does the file "
+               "%s contain a valid pid ?\n",
+               PID_FILE);
 }
 
 void down_usage()
 {
     int pid = fetch_pid();
     if (kill(pid, SIGUSR2) < 0)
-        printf("Signal was not sent. Is the daemon running and does the file %s contain a valid pid ?\n", PID_FILE);
+        printf("Signal was not sent. Is the daemon running and does the file "
+               "%s contain a valid pid ?\n",
+               PID_FILE);
 }
 
-int main(int argc, char *argv[])
+int main(int argc, char* argv[])
 {
     // If daemon is running
     if (!access(PID_FILE, F_OK))
